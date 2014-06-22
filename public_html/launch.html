@@ -1,0 +1,175 @@
+<script src="/analyticsRes/res/js/jquery-1.7.1.min.js"></script>
+<script src="/analyticsRes/res/js/jquery.form.js"></script>
+<script language="javascript">
+
+	function setOpaque() {
+		var opaqueLayer = document.getElementById("sitInvisibleLayer62345");
+		if (!opaqueLayer) {
+			opaqueLayer = document.createElement("div");
+			opaqueLayer.id = "sitInvisibleLayer62345";
+		}
+		opaqueLayer.className = "OpaqueLayer";
+		opaqueLayer.style.cssText = "position:absolute;top:0px;left:0px;width: " + document.body.offsetWidth + "px;height: " + document.body.offsetHeight + "px;";
+		
+		return opaqueLayer;
+	}
+	function setContent() {
+		var contentLayer = document.getElementById("sitContentLayer62345");
+		if (!contentLayer) {
+			contentLayer = document.createElement("div");
+			contentLayer.id = "sitContentLayer62345";
+			
+			var content = document.createElement("div");
+			content.className = "Content"; content.style.cssText = "position:relative;width:50%;top:40%;margin:0px auto;text-align:center;";
+			
+			var loadIndicator = document.createElement("img");
+			loadIndicator.boarder = "0"; loadIndicator.alt = ""; loadIndicator.src = "res/s_FusionFX/views/searching_light.gif";
+			
+			var textLabel = document.createElement("span");
+			textLabel.innerHTML = "Пожалуйста, дождитесь окончания загрузки...";
+			textLabel.style.cssText = "color: #000000;font-family: Tahoma,Sans-serif;font-size: 11px;"  
+			
+			content.appendChild(loadIndicator);
+			content.appendChild(textLabel);
+			contentLayer.appendChild(content);
+		}
+		contentLayer.style.cssText = "position:absolute;top:0px;left:0px;width: " + document.body.offsetWidth + "px;height: " + document.body.offsetHeight + "px;";
+		
+		return contentLayer;
+	}
+	
+	function lockControls() {
+		document.getElementById("csvImportFormat").setAttribute("disabled","");
+		document.getElementById("csvImportName").setAttribute("disabled","");
+		document.getElementById("csvImportFile").setAttribute("disabled","");
+		document.getElementById("csvImportButton").setAttribute("disabled","");
+		
+		var d = setOpaque();
+		var t = setContent();
+		t.style.display = "block";
+		d.style.display = "block";
+		document.body.appendChild(d);
+		document.body.appendChild(t);
+	}
+	
+	function unlockControls() {
+		document.getElementById("csvImportFormat").removeAttribute("disabled");
+		document.getElementById("csvImportName").removeAttribute("disabled");
+		document.getElementById("csvImportFile").removeAttribute("disabled");
+		document.getElementById("csvImportButton").removeAttribute("disabled");
+		
+		var d = document.getElementById("sitInvisibleLayer62345");
+		var t = document.getElementById("sitContentLayer62345");
+		document.body.removeChild(d);
+		document.body.removeChild(t);
+	}
+	
+	jQuery(document).ready(function() {
+                ///analytics/csv-data-manager/csvfilterslistservlet
+                ///analytics/csv-data-manager/csvimportservlet
+                jQuery.getJSON("/analytics/csv-data-manager/csvfilterslistservlet", function(data) {
+			var items = new Array();
+			for (i=0;i<data.length;i++) {
+				items.push("<option value=\"" + data[i].filter_id + "\">" + data[i].filter + "<\/option>");
+			}
+			var selectOptions = items.join("");
+			var csvIm = document.getElementById("csvImportFormat");
+			csvIm.innerHTML = csvIm.innerHTML + selectOptions;
+		});
+	});
+	
+	var options = {
+		beforeSubmit: function() {
+			lockControls();
+		},
+		success: function (data) {
+			unlockControls();
+            console.log(data);
+            try {
+				eval(JSON.parse(data));
+				var d = JSON.parse(data);
+				if (d.status == "0" && d.code == "100"){
+					alert("Данные успешно загружены");
+				} else {
+					alert("Ошибка: " + d.code + ": " + d.message);
+				}
+			} catch (error) {
+				alert(error.name + ": " + data);
+			}
+		},
+		error: function(request, textStatus, thrownError) {
+			unlockControls();
+			if (request.status == "400") {
+				request = jqXHR.responseText;
+                        }
+                        console.log(request.responseText);
+		}
+	}
+	jQuery("#csvImportForm").ajaxForm(options);
+</script>
+<style>
+	.CsvLabelText {
+		font-family: Tahoma;
+		font-size: 11px;
+		cursor: default;
+	}
+	.CsvTdText {
+		width: 400px;
+		font-family: Tahoma;
+		font-size: 11px;
+		cursor: default;
+		padding-left: 40px;
+	}
+</style>
+<div class="CSVDownloadData"/>
+	<form id="csvImportForm" action="/analytics/csv-data-manager/csvimportservlet" name="csvImportForm" method="POST" enctype="multipart/form-data">
+		<table>
+			<tbody>
+				<tr>
+					<td>
+						<label class="CsvLabelText" for="csvImportFormat">Шаблон загружаемого файла: </label>
+					</td>
+					<td>
+						<select class="promptTextField" name="csvImportFormat" id="csvImportFormat" style="width:250px;">
+							<option value=""> - выберите шаблон - </option>
+						</select>
+					</td>
+                    <td class="CsvTdText">
+						<p align="justify">Укажите шаблон, по которому должна осуществиться загрузка. Шаблон определяет формат загружаемого файла, а также целевые таблицы BI.</p>
+					</td>					
+				</tr>
+				<tr style="height:20px;"></tr>
+				<tr>
+					<td>
+						<label class="CsvLabelText" for="csvImportName">Название фильтра загрузки: </label>
+					</td>
+					<td>
+						<input name="csvImportName" id="csvImportName" style="width:240px;" />
+					</td>
+					<td class="CsvTdText">
+						<p align="justify">Укажите название загружаемой выборки данных. В случае использования загруженных данных в фильтрах отчетов BI, заданное вами название будет использоваться в качестве уникального идентификатора загруженных данных.</p>
+					</td>
+				</tr>
+				<tr style="height:20px;"></tr>
+				<tr>
+					<td>
+						<label class="CsvLabelText" for="csvImportFile">CSV - файл: </label>
+					</td>
+					<td>
+						<input type="file" id="csvImportFile" name="csvImportFile" size="45" border="0" style="width:300px;" class="promptTextField">
+					</td>
+					<td class="CsvTdText">
+						<p align="justify">Укажите местоположение загружаемого файла на вашем компьютере.</p>
+					</td>
+				</tr>
+				<tr style="height:20px;"></tr>
+				<tr>
+					<td></td>
+					<td>
+						<input class="CsvLabelText" style="width:250px;" id="csvImportButton" value="Загрузить" type="submit"/>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</form>
+</div>
